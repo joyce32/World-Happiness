@@ -1,0 +1,23 @@
+---
+title: "world-happiness"
+author: "Tejaswi Rachapudi, tejaswi2"
+date: "12/8/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Cleaning the data 
+
+```{r}
+library(data.table)
+library(dplyr)
+X2016 <- read.csv("~/world-happiness-2/2016.csv")
+data = as.data.table(X2016)
+names = c("Country", "Region", "HappinessRank", "Score", "LowerCI", "UpperCI", "GDP", "Family", "LifeExp", "Freedom", "Corruption", "Generosity", "DystopianResidual")
+names(data) = names
+```
+
+

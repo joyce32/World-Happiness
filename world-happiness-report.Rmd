@@ -1,0 +1,225 @@
+---
+title: "World Happiness Project Report"
+author: "Tejaswi Rachapudi, Ankit Datta, Isaiah Heath"
+date: "12/9/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r results='hide', echo=TRUE, message=FALSE}
+library(data.table)
+library(dplyr)
+library(ggplot2)
+```
+
+## Data Cleaning and Validation
+```{r}
+X2016 <- read.csv("world-happiness-2/2016.csv")
+data = as.data.table(X2016)
+names = c("Country", "Region", "HappinessRank", "Score", "LowerCI", "UpperCI", "GDP", "Family", "LifeExp", "Freedom", "Corruption", "Generosity", "DystopianResidual")
+names(data) = names
+```
+
+First, we need to import the raw CSV file, read it in as a data frame, and convert it to a data table in order to use R packages such as dplyr. Next, we rename the columns with appropriate headers and validated the classes of each column, which were the variables GDP, freedom, life expectancy, family, corruption, generosity, and dystopian residual. In order to validate the data, we had to make sure variables such as country and region were factors with 157 and 10 levels, respectively, representing the 157 countries and 10 regions of the world. Happiness rank is an integer representing the rank of the country's happiness score, given as a num. All other variables, excluding country, region, and happiness rank, are supposed to be numeric decimal values. The descriptions of the columns are given as:
+
+* Country: Name of the country
+* Region: Region the country belongs to
+* Happiness Rank: Rank of the country based on the Happiness Score.
+* Happiness Score: A metric measured in 2016 by asking the sampled people the question: "How would you rate your happiness on a scale of 0 to 10 where 10 is the happiest"
+* Lower Confidence Interval: Lower Confidence Interval of the Happiness Score
+* Upper Confidence Interval: Upper Confidence Interval of the Happiness Score
+* Economy (GDP per Capita): The extent to which GDP contributes to the calculation of the Happiness Score.
+* Family: The extent to which Family contributes to the calculation of the Happiness Score
+* Life Expectancy: The extent to which Life expectancy contributed to the calculation of the Happiness Score
+* Freedom: The extent to which Freedom contributed to the calculation of the Happiness Score
+* Corruption (Government Corruption): The extent to which Perception of Corruption contributes to Happiness Score
+* Generosity: The extent to which Generosity contributed to the calculation of the Happiness Score
+* Dystopia Residual: The extent to which Dystopia Residual contributed to the calculation of the Happiness Score. This value represents the difference between the score of the hypothetical worst (least happy) country and each country in the dataset. The dystopian residual is a useful variable when it comes to comparing happiness scores within regions, but we will be excluding it from the predictors when modeling.
+
+
+## Data Analysis
+
+```{r}
+summary(data)
+plot(data)
+datasubset = data[, c(4, 7,8,9,10,11,12)]
+cor(datasubset)
+```
+
+First, we would like to see the summary statistics for each variable and plot the pairwise relationships to make initial observations. We notice that the ranges of variables including generosity, corruption, and freedom, are not as large as the ranges of variables like GDP, family, and life expectancy. 
+
+From the plots of the variables as well as the correlation table, we can see some relationships with linear trend and strong correlation, so we must investigate further.
+
+
+```{r include=FALSE}
+ovr = data %>% group_by(Region) %>% summarise(Score = mean(Score))
+
+ggplot(data, aes(x = Region, y = Score, color = Region)) + geom_point() + geom_point(data = ovr, size = 4, alpha = .8) + geom_text(data = ovr, aes(label = round(Score, 2)), hjust = 0, nudge_x = .1, vjust = 0, nudge_y = 0.1) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + labs(title = "Happiness Scores by Region")
+```
+
+We can visualize the breakdown of the Happiness Scores for each Region of the world, and compare the means of each Region to the countries within it, as well as with other Regions.
+
+It appears as if the Australia and New Zealand Region has the highest mean Happiness Score of 7.32, and the Sub-Subharan Africa Region has the lowest mean Score of 4.14. We can see a large range of scores within each region such as the Latin America and Caribbean and Middle East and Northern Africa Regions due to a large number of countries in that region, and smaller ranges for the Australia and New Zealand and North America Regions due to only a few countries being in that region.
+
+We want to break down these statistics by Region even further, so we can look at how each factor such as GDP, freedom, life expectancy, family, corruption, generosity and dystopian residual can be influenced by the Region and see if that can show how the overall happiness score is affected.
+
+### Visualizations of Summaries of Factors
+
+All the plots below show how much each variable contributes to the overall Happiness Score.
+
+
+```{r}
+ovr = data %>% group_by(Region) %>% summarise(GDP = mean(GDP))
+
+ggplot(data, aes(Region, GDP, color = Region)) + geom_point()+ geom_point(data = ovr, size = 4, alpha = .8)  + geom_text(data = ovr, aes(label = round(GDP, 2)), hjust = 0, nudge_x = .1, vjust = 0, nudge_y = 0.1) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + labs(title = "How Much GDP Contributes to Happiness")
+```
+
+
+
+```{r}
+ovr = data %>% group_by(Region) %>% summarise(Family = mean(Family))
+
+ggplot(data, aes(Region, Family, color = Region)) + geom_point() + geom_point(data = ovr, size = 4, alpha = .8)  + geom_text(data = ovr, aes(label = round(Family, 2)), hjust = 0, nudge_x = .1, vjust = 0, nudge_y = 0.1) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + labs(title = "How Much Family Contributes to Happiness")
+```
+
+
+```{r}
+ovr = data %>% group_by(Region) %>% summarise(LifeExp = mean(LifeExp))
+
+ggplot(data, aes(Region, LifeExp, color = Region)) + geom_point() + geom_point(data = ovr, size = 4, alpha = .8)  + geom_text(data = ovr, aes(label = round(LifeExp, 2)), hjust = 0, nudge_x = .1, vjust = 0, nudge_y = 0.1) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + labs(title = "How Much Life Expectency Contributes to Happiness")
+```
+
+
+```{r}
+ovr = data %>% group_by(Region) %>% summarise(Freedom = mean(Freedom))
+
+ggplot(data, aes(Region, Freedom, color = Region)) + geom_point() + geom_point(data = ovr, size = 4, alpha = .8)  + geom_text(data = ovr, aes(label = round(Freedom, 2)), hjust = 0, nudge_x = .1, vjust = 0, nudge_y = 0.1) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + labs(title = "How Much Freedom Contributes to Happiness")
+```
+
+```{r}
+ovr = data %>% group_by(Region) %>% summarise(Corruption = mean(Corruption))
+
+ggplot(data, aes(Region, Corruption, color = Region)) + geom_point() + geom_point(data = ovr, size = 4, alpha = .8)  + geom_text(data = ovr, aes(label = round(Corruption, 2)), hjust = 0, nudge_x = .1, vjust = 0, nudge_y = 0.1) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + labs(title = "How Much Government Corruption Contributes to Happiness")
+```
+
+```{r}
+ovr = data %>% group_by(Region) %>% summarise(Generosity = mean(Generosity))
+
+ggplot(data, aes(Region, Generosity, color = Region)) + geom_point() + geom_point(data = ovr, size = 4, alpha = .8)  + geom_text(data = ovr, aes(label = round(Generosity, 2)), hjust = 0, nudge_x = .1, vjust = 0, nudge_y = 0.1) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + labs(title = "How Much Generosity Contributes to Happiness")
+```
+
+```{r}
+ovr = data %>% group_by(Region) %>% summarise(DystopianResidual = mean(DystopianResidual))
+
+ggplot(data, aes(Region, DystopianResidual, color = Region)) + geom_point() + geom_point(data = ovr, size = 4, alpha = .8)  + geom_text(data = ovr, aes(label = round(DystopianResidual, 2)), hjust = 0, nudge_x = .1, vjust = 0, nudge_y = 0.1) + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.ticks.x=element_blank()) + labs(title = "How Much the Dystopian Residual Contributes to Happiness")
+```
+
+We observe that the GDP, family, life expectancy, and freedom variables show a clear difference between the means and ranges of factors within the regions. Other variables like corruption, generosity, and dystopian residual do not differ as much region to region. Now that we have seen how each variable contributes to the happiness score in each region, we can look at the relationship between a country's score and how much each factor contributes to the score. We can also see if a variable appears to have a strong linear trend with respect to a country's score.
+
+### Trends Between Factors and Happiness Score
+
+```{r}
+ggplot(data, aes(x = GDP, y = Score)) + geom_point(aes(color = Region)) + geom_smooth(method = "loess") + labs(title = "GDP vs Score")
+
+```
+
+
+```{r}
+ggplot(data, aes(x = LifeExp, y = Score)) + geom_point(aes(color = Region)) + geom_smooth(method = "loess") + labs(title = "Life Expectancy vs Score")
+
+```
+
+```{r}
+ggplot(data, aes(x = Freedom, y = Score)) + geom_point(aes(color = Region)) + geom_smooth(method = "loess") + labs(title = "Freedom vs Score")
+```
+
+```{r}
+ggplot(data, aes(x = Corruption, y = Score)) + geom_point(aes(color = Region)) + geom_smooth(method = "loess") + labs(title = "Corruption vs Score")
+
+```
+
+```{r}
+ggplot(data, aes(x = Generosity, y = Score)) + geom_point(aes(color = Region)) + geom_smooth(method = "loess") + labs(title = "Generosity vs Score")
+```
+
+```{r}
+ggplot(data, aes(x = DystopianResidual, y = Score)) + geom_point(aes(color = Region)) + geom_smooth(method = "loess") + labs(title = "Dystopian Residual vs Score") + geom_vline(xintercept = 1.85)
+```
+
+After examining these plots, we can see that GDP, family, life expectancy, and freedom all appear to have a strongly correlated and positive linear trends from their loess regression plots. Although the extremes of these variables do not seem to follow the same linear trends, the points appear to generally follow a positive linear trend. For examples, the higher the GDP contribution, the higher the happiness score of a country is likely to be. 
+
+Corruption, generosity, and dystopian residual do not appear to have any linear trend or a strong correlation as seen from the regression lines as well as the spray of the points for the country's variable. The loess line is a curve, and for the same corruption score value, there is a large range in overall happiness score. For example, for a corruption score of 0.1, there are countries with a happiness score between 3 and 7. 
+
+Now that we know more information about how each factor affects score, we can try to create multilinear regression models using forward selection and stepwise selection in both directions. 
+
+### Modeling Happiness Score
+
+We want to create a model to predict the happiness score from the factors: GDP, freedom, life expectancy, family, corruption, and generosity. As mentioned earlier, dystopian residual is excluded as it is used more as a comparison statistic rather than using it to predict a happiness score. 
+
+Using forward selection and the F test statistic, we add the variable with the largest F value (smallest p-value) to the model in order to minimize the AIC value. The process of adding variables to a model one-by-one is shown below:
+
+```{r}
+
+score_fit = lm(Score ~ 1, data = data)
+indep.vars = ~ GDP + Family + LifeExp + Freedom + Corruption + Generosity
+add1(score_fit, indep.vars, test = "F")
+```
+```{r}
+score_fit = update(score_fit, . ~ . + GDP)
+add1(score_fit, indep.vars, test = "F")
+```
+```{r}
+score_fit = update(score_fit, . ~ . + Freedom)
+add1(score_fit, indep.vars, test = "F")
+```
+
+```{r}
+score_fit = update(score_fit, . ~ . + Family)
+add1(score_fit, indep.vars, test = "F")
+```
+```{r}
+score_fit = update(score_fit, . ~ . + LifeExp)
+add1(score_fit, indep.vars, test = "F")
+```
+```{r}
+score_fit = update(score_fit, . ~ . + Corruption)
+add1(score_fit, indep.vars, test = "F")
+```
+
+```{r}
+summary(score_fit)
+```
+
+As shown in the summary, the final model is Score ~ GDP + Freedom + Family + LifeExp + Corruption, with a p-value of < 2.2e-16, which is statistically significant. 
+
+In order to see if there are other possible models, we can use the step function, which adds or removes the independent variables GDP, Family, LifeExp, Freedom, Corruption, and Generosity to the model to minimize AIC. 
+
+```{r}
+score_aic = lm(Score ~ 1, data = data)
+indep.vars = ~ GDP + Family + LifeExp + Freedom + Corruption + Generosity 
+score_out = step(score_aic, scope = indep.vars, direction = "both")
+summary(score_out)
+```
+
+As we can see from the output of the stepwise function, we get the same model as before: Score ~ GDP + Freedom + Family + LifeExp + Corruption. This model uses all of the factors except generosity, which is not statistically significant to include. We can see how well this model fits the data by observing the plots below: 
+
+```{r}
+par(mfrow = c(2,2))
+plot(score_fit)
+critval = qt(0.05/(2*nobs(score_fit)), df=df.residual(score_fit)-1, lower=FALSE)
+which(abs(rstudent(score_fit)) > critval)
+```
+
+
+The residuals plot shows that points are equally spread and fall on a flat line, so the constant variance assumption appears to be satisfied. The points on the Normal Q-Q plot generally fall on the line, except for at the extremes. This means the normality assumption also holds. There are no outliers or influential points, as shown in the plots and the Bonferroni adjusted critical value. 
+
+```{r}
+plot(data$Score, score_fit$fitted.values)
+abline(0, 1, col = "red")
+```
+
+This plot confirms that the model's predicted values closely match the observed happiness scores when using the six predictor variables to predict scores. We conclude that the final model Score ~ GDP + Freedom + Family + LifeExp + Corruption fits our data well. 
+
